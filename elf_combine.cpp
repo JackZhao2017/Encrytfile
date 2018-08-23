@@ -69,7 +69,7 @@ void ChangeLoaderSegmentSize(ELF_t *elf )
 			}
 			else if(load_index==1)
 			{
-				int lastfild = elf->loadersize-program[i].p_offset-program[i].program[i].p_filesz;
+				int lastfild = elf->loadersize-program[i].p_offset-program[i].p_filesz;
 				program[i].p_filesz +=elf->keysize+elf->sosize+lastfild;
 				program[i].p_memsz  +=elf->keysize+elf->sosize+lastfild;
 				break;
@@ -79,7 +79,7 @@ void ChangeLoaderSegmentSize(ELF_t *elf )
 }
 void ChangeLoaderHeader(ELF_t *elf)
 {
-	elf->e_shoff = elf->loadersize;
+	elf->elf_header.e_shoff = elf->loadersize;
 }
 int CombineWriteLoader(ELF_t *elf)
 {
