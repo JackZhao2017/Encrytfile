@@ -10,6 +10,7 @@ typedef struct elf
 	Elf32_Phdr *program;
 	int keysize;
 	int sosize;
+	int loadersize;
 	FILE *floader;
 	FILE *fkey;
 	FILE *fso;
@@ -46,6 +47,14 @@ int GetSosize(FILE *fso)
 	fseek(fso,0,SEEK_SET);
 	return size;
 }
+
+int Getloadersize(FILE *floader)
+{
+	fseek(floader,0,SEEK_END);
+	int size = ftell(floader);
+	fseek(floader,0,SEEK_SET);
+	return size;	
+}
 void ChangeLoaderSegmentSize(ELF_t *elf )
 {
 	int load_index=0,i=0;
@@ -58,14 +67,19 @@ void ChangeLoaderSegmentSize(ELF_t *elf )
 			{
 				load_index=1;
 			}
-		}
-		if(load_index==1)
-		{
-			program[i].p_filesz +=elf->keysize+elf->sosize;
-			program[i].p_memsz +=elf->keysize+elf->sosize;
-			break;
+			else if(load_index==1)
+			{
+				int lastfild = elf->loadersize-program[i].p_offset-program[i].program[i].p_filesz;
+				program[i].p_filesz +=elf->keysize+elf->sosize+lastfild;
+				program[i].p_memsz  +=elf->keysize+elf->sosize+lastfild;
+				break;
+			}
 		}
 	}
+}
+void ChangeLoaderHeader(ELF_t *elf)
+{
+	elf->e_shoff = elf->loadersize;
 }
 int CombineWriteLoader(ELF_t *elf)
 {
@@ -160,21 +174,26 @@ int main(int argc, char const *argv[])
 	{
 		printf("can not create  %s \n",out_name);
 		return -1;
-	}	
+	}
+
+	mElf.keysize = GetKeysize(mElf.fkey);
+	mElf.sosize  = GetSosize(mElf.fso);
+	mElf.loadersize= Getloadersize(mElf.floader);
+
+
+
 	GetLoaderHeader(mElf.floader,&mElf.elf_header);
 
 	mElf.program=(Elf32_Phdr*)malloc(sizeof(Elf32_Phdr)*mElf.elf_header.e_phnum);
 
-	mElf.keysize=GetKeysize(mElf.fkey);
-	mElf.sosize =GetSosize(mElf.fso);
-
 	 
-	 GetLoaderProgram(&mElf);
-	 ChangeLoaderSegmentSize(&mElf);
+	GetLoaderProgram(&mElf);
+	ChangeLoaderSegmentSize(&mElf);
+	ChangeLoaderHeader(&mElf);
 
-	 CombineWriteLoader(&mElf);
-	 CombineWriteKey(&mElf);
-	 CombineWriteSo(&mElf);
+	CombineWriteLoader(&mElf);
+	CombineWriteKey(&mElf);
+	CombineWriteSo(&mElf);
 
 	fclose(mElf.floader);
     fclose(mElf.fso);
@@ -204,3 +223,7 @@ int process_cmdline(int argc, const char **argv)
     }
     return 0;
 }
+
+
+
+
