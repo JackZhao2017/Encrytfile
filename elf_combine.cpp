@@ -11,6 +11,7 @@ typedef struct elf
 	int keysize;
 	int sosize;
 	int loadersize;
+	int virual_addr;
 	FILE *floader;
 	FILE *fkey;
 	FILE *fso;
@@ -70,8 +71,11 @@ void ChangeLoaderSegmentSize(ELF_t *elf )
 			else if(load_index==1)
 			{
 				int lastfild = elf->loadersize-program[i].p_offset-program[i].p_filesz;
+				elf->virual_addr = program[i].p_vaddr+program[i].p_filesz+lastfild;
 				program[i].p_filesz +=elf->keysize+elf->sosize+lastfild;
 				program[i].p_memsz  +=elf->keysize+elf->sosize+lastfild;
+				printf("lastfild 0x%08x\n",lastfild);
+				printf("virual_addr 0x%08x\n",elf->virual_addr);
 				break;
 			}
 		}
@@ -79,7 +83,8 @@ void ChangeLoaderSegmentSize(ELF_t *elf )
 }
 void ChangeLoaderHeader(ELF_t *elf)
 {
-	elf->elf_header.e_shoff = elf->loadersize;
+	elf->elf_header.e_shoff = elf->virual_addr;
+	printf("e_shoff 0x%08x\n",elf->elf_header.e_shoff);
 }
 int CombineWriteLoader(ELF_t *elf)
 {
@@ -179,8 +184,9 @@ int main(int argc, char const *argv[])
 	mElf.keysize = GetKeysize(mElf.fkey);
 	mElf.sosize  = GetSosize(mElf.fso);
 	mElf.loadersize= Getloadersize(mElf.floader);
-
-
+	printf("keysize %d \n",mElf.keysize );
+	printf("sosize %d \n",mElf.sosize );
+	printf("loadersize %d \n",mElf.loadersize );
 
 	GetLoaderHeader(mElf.floader,&mElf.elf_header);
 
